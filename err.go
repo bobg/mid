@@ -9,6 +9,7 @@ import (
 
 // Errf is a convenience wrapper for http.Error.
 // It calls http.Error(w, fmt.Sprintf(format, args...), code).
+// It also logs that message with log.Print.
 // If code is 0, it defaults to http.StatusInternalServerError.
 // If format is "", Errf uses http.StatusText instead.
 func Errf(w http.ResponseWriter, code int, format string, args ...interface{}) {
