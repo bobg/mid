@@ -22,27 +22,40 @@ type (
 	respKey struct{}
 )
 
-// JSON produces an http.Handler from a function f.
+// JSON produces an http.Handler by JSON encoding and decoding of a given function's input and output.
 //
-// The function may take one "request" argument of any type that can be JSON-unmarshaled.
-// That argument can optionally be preceded by a context.Context.
-// It may return one "response" value of any type that can be JSON-marshaled.
-// That return value can optionally be followed by an error.
-// If the function returns an error, the error is handled as in Err.
+// The signature of the function is:
 //
-// When the handler is invoked,
-// the request is checked to ensure that the method is POST
-// and the Content-Type is application/json.
-// Then the function f is invoked with the request body JSON-unmarshaled into its argument
-// (if there is one).
-// The return value of f (if there is one) is JSON-marshaled into the response
-// and the Content-Type of the response is set to application/json.
+//   func(context.Context, inType) (outType, error)
 //
-// If f takes a context.Context, it receives the context object from the http.Request.
-// The context object is adorned with the pending *http.Request,
-// which can be retrieved with the Request function,
-// and the pending http.ResponseWriter,
-// which can be retrieved with ResponseWriter.
+// where inType is any type that can be decoded from JSON
+// and outType is any type that can be encoded to JSON.
+// Every part of the signature (both arguments and both return values) is optional.
+// Passing the wrong type of object to this function produces a panic.
+//
+// When the function is called:
+//
+//   - If a context argument is present,
+//     it is supplied from the Context() method of the pending *http.Request.
+//     That context is further adorned with the pending *http.Request
+//     and the pending http.ResponseWriter,
+//     which can be retrieved with the Request and ResponseWriter functions.
+//
+//   - If an inType argument is present,
+//     the request is checked to ensure that the method is POST
+//     and the Content-Type is application/json;
+//     then the request body is unmarshaled into the inType argument.
+//     Note that the JSON decoder uses the UseNumber setting;
+//     see https://golang.org/pkg/encoding/json/#Decoder.UseNumber.
+//
+//   - If an outType result is present,
+//     it is JSON marshaled and written to the pending ResponseWriter
+//     with an HTTP status of 200 (ok).
+//     If no outType is present,
+//     the default HTTP status is 204 (no content).
+//
+//   - If an error result is present,
+//     it is handled as in Err.
 //
 // Some of the code in this function is (liberally) adapted from github.com/chain/chain.
 func JSON(f interface{}) http.Handler {
@@ -109,10 +122,6 @@ func JSON(f interface{}) http.Handler {
 	}
 
 	return Err(func(w http.ResponseWriter, req *http.Request) error {
-		if !strings.EqualFold(req.Method, "POST") {
-			return CodeErr{C: http.StatusMethodNotAllowed}
-		}
-
 		ctx := req.Context()
 		if hasCtx {
 			ctx = context.WithValue(ctx, reqKey{}, req)
@@ -124,6 +133,10 @@ func JSON(f interface{}) http.Handler {
 			args = append(args, reflect.ValueOf(ctx))
 		}
 		if argType != nil {
+			if !strings.EqualFold(req.Method, "POST") {
+				return CodeErr{C: http.StatusMethodNotAllowed}
+			}
+
 			ctfield := req.Header.Get("Content-Type")
 			ct, _, err := mime.ParseMediaType(ctfield)
 			if err != nil {
@@ -153,7 +166,6 @@ func JSON(f interface{}) http.Handler {
 		}
 
 		if resultType == nil {
-			w.WriteHeader(http.StatusNoContent)
 			return nil
 		}
 
