@@ -77,6 +77,7 @@ func TestJSON(t *testing.T) {
 	}))
 
 	s := httptest.NewServer(mux)
+	defer s.Close()
 
 	cases := []struct {
 		path         string
