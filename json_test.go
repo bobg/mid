@@ -217,3 +217,24 @@ func TestJSON(t *testing.T) {
 		})
 	}
 }
+
+func TestJSONPtrs(t *testing.T) {
+	s := httptest.NewServer(JSON(func(in *jsonInput) *jsonOutput {
+		return &jsonOutput{C: in.B, D: in.A}
+	}))
+
+	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{"a":1,"b":"xyzzy"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	var got jsonOutput
+	err = json.NewDecoder(resp.Body).Decode(&got)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.C != "xyzzy" || got.D != 1 {
+		t.Errorf(`got %+v, want {C: "xyzzy", D: 1}`, got)
+	}
+}

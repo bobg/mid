@@ -30,7 +30,11 @@ type (
 //
 // where inType is any type that can be decoded from JSON
 // and outType is any type that can be encoded to JSON.
-// Every part of the signature (both arguments and both return values) is optional.
+// These may alternatively be pointers to such types.
+//
+// Every part of the signature is optional
+// (both arguments and both return values).
+//
 // Passing the wrong type of object to this function produces a panic.
 //
 // When the function is called:
@@ -72,8 +76,9 @@ func JSON(f interface{}) http.Handler {
 	}
 
 	var (
-		hasCtx  bool
-		argType reflect.Type
+		hasCtx   bool
+		argType  reflect.Type
+		argIsPtr bool
 	)
 
 	switch ft.NumIn() {
@@ -96,9 +101,14 @@ func JSON(f interface{}) http.Handler {
 		panic(e())
 	}
 
+	if argType != nil && argType.Kind() == reflect.Ptr {
+		argIsPtr = true
+		argType = argType.Elem()
+	}
+
 	var (
-		hasErr     bool
-		resultType reflect.Type
+		hasErr bool
+		hasRes bool
 	)
 
 	switch ft.NumOut() {
@@ -108,15 +118,15 @@ func JSON(f interface{}) http.Handler {
 		if ft.Out(0).Implements(errorType) {
 			hasErr = true
 		} else {
-			resultType = ft.Out(0)
+			hasRes = true
 		}
 	case 2:
+		hasRes = true
 		if ft.Out(1).Implements(errorType) {
 			hasErr = true
 		} else {
 			panic(e())
 		}
-		resultType = ft.Out(0)
 	default:
 		panic(e())
 	}
@@ -153,7 +163,12 @@ func JSON(f interface{}) http.Handler {
 			if err != nil {
 				return errors.Wrap(err, "unmarshaling JSON argument")
 			}
-			args = append(args, argPtr.Elem())
+
+			a := argPtr
+			if !argIsPtr {
+				a = a.Elem()
+			}
+			args = append(args, a)
 		}
 
 		rv := fv.Call(args)
@@ -165,7 +180,7 @@ func JSON(f interface{}) http.Handler {
 			}
 		}
 
-		if resultType == nil {
+		if !hasRes {
 			return nil
 		}
 
