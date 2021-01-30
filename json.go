@@ -204,7 +204,3 @@ func ResponseWriter(ctx context.Context) http.ResponseWriter {
 	resp, _ := ctx.Value(respKey{}).(http.ResponseWriter)
 	return resp
 }
-
-func panicf(format string, args ...interface{}) {
-	panic(fmt.Sprintf(format, args...))
-}
