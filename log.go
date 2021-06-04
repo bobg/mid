@@ -21,13 +21,13 @@ func Log(next http.Handler) http.Handler {
 			log.Printf("< %s %s", req.Method, req.URL)
 		}
 
-		ww := responseWriterWrapper{w: w}
+		ww := ResponseWrapper{W: w}
 		next.ServeHTTP(&ww, req)
 
 		if traceID != "" {
-			log.Printf("> %d %s %s [%s]", ww.code, req.Method, req.URL, traceID)
+			log.Printf("> %d %s %s [%s]", ww.Code, req.Method, req.URL, traceID)
 		} else {
-			log.Printf("> %d %s %s", ww.code, req.Method, req.URL)
+			log.Printf("> %d %s %s", ww.Code, req.Method, req.URL)
 		}
 	})
 }

@@ -37,18 +37,18 @@ func Errf(w http.ResponseWriter, code int, format string, args ...interface{}) {
 // defaults to http.StatusOK, or http.StatusNoContent if nothing has been written to w.
 func Err(f func(http.ResponseWriter, *http.Request) error) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		ww := responseWriterWrapper{w: w}
+		ww := ResponseWrapper{W: w}
 		err := f(&ww, req)
 		var responder Responder
 		if errors.As(err, &responder) {
 			responder.Respond(w)
 		} else if err != nil {
-			if ww.code == 0 {
+			if ww.Code == 0 {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
-		} else if ww.code == 0 {
+		} else if ww.Code == 0 {
 			code := http.StatusOK
-			if ww.n == 0 {
+			if ww.N == 0 {
 				code = http.StatusNoContent
 			}
 			w.WriteHeader(code)
