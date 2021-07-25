@@ -1,7 +1,8 @@
 # Mid - Assorted middleware for HTTP services.
 
-[![GoDoc](https://godoc.org/github.com/bobg/mid?status.svg)](https://godoc.org/github.com/bobg/mid)
+[![Go Reference](https://pkg.go.dev/badge/github.com/bobg/mid.svg)](https://pkg.go.dev/github.com/bobg/mid)
 [![Go Report Card](https://goreportcard.com/badge/github.com/bobg/mid)](https://goreportcard.com/report/github.com/bobg/mid)
+![Tests](https://github.com/bobg/mid/actions/workflows/go.yml/badge.svg)
 
 Included in this package:
 
