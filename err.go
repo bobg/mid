@@ -47,11 +47,7 @@ func Err(f func(http.ResponseWriter, *http.Request) error) http.Handler {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 		} else if ww.Code == 0 {
-			code := http.StatusOK
-			if ww.N == 0 {
-				code = http.StatusNoContent
-			}
-			w.WriteHeader(code)
+			w.WriteHeader(ww.Result())
 		}
 	})
 }

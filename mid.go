@@ -42,3 +42,17 @@ func (ww *ResponseWrapper) WriteHeader(code int) {
 	ww.Code = code
 	ww.W.WriteHeader(code)
 }
+
+// Result returns the value of the Code field,
+// if it has been set.
+// Otherwise it returns http.StatusOK or http.StatusNoContent
+// depending on whether any bytes have been written.
+func (ww *ResponseWrapper) Result() int {
+	if ww.Code != 0 {
+		return ww.Code
+	}
+	if ww.N > 0 {
+		return http.StatusOK
+	}
+	return http.StatusNoContent
+}
