@@ -37,28 +37,29 @@ func fooHandler(w http.ResponseWriter, req *http.Request) error {
 
 ## JSON
 
-The `JSON` function turns a `func(context.Context, interface{}) (interface{}, error)`
+The `JSON` function turns a `func(context.Context, X) (Y, error)`
 into an `http.Handler`,
-automatically JSON-unmarshaling the HTTP request body into the `interface{}` input parameter,
-and automatically JSON-marshaling the function’s result into the HTTP response.
+where `X` is the type of a parameter into which the HTTP request body is automatically JSON-unmarshaled,
+and `Y` is the type of a result that is automatically JSON-marshaled into the HTTP response.
 Any error is handled as with `Err`
 (see above).
 All parts of the `func` signature are optional:
 the `context.Context` parameter,
-the `interface{}` parameter,
-the `interface{}` result,
+the `X` parameter,
+the `Y` result,
 and the `error` result.
 
 Usage:
 
 ```go
 func main() {
+  // Parses the request body as a JSON-encoded array of strings,
+  // then sorts, re-encodes, and returns that array.
   http.Handle("/bar", JSON(barHandler))
+
   http.ListenAndServe(":8080", nil)
 }
 
-// Parses the request body as a JSON-encoded array of strings,
-// then sorts and returns that array.
 func barHandler(inp []string) []string {
   sort.Strings(inp)
   return inp
