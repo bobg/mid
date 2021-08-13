@@ -4,12 +4,85 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/bobg/mid)](https://goreportcard.com/report/github.com/bobg/mid)
 ![Tests](https://github.com/bobg/mid/actions/workflows/go.yml/badge.svg)
 
-Included in this package:
+This is mid,
+a collection of useful middleware for HTTP services.
 
-- `Err`, for wrapping handler functions that return Go errors
-- `JSON`, for wrapping handler functions that accept and return JSON data
-- `Trace`, for tracing a request through its server-side lifetime
-- `Log`, for wrapping handler functions to write log messages on entry and exit
-- `CodeErr`, an error type for reporting HTTP status codes
+## Err
 
-plus supporting types and logic.
+The `Err` function turns a `func(http.ResponseWriter, *http.Request) error`
+into an `http.Handler`,
+allowing handler functions to return errors in a more natural fashion.
+These errors result in the handler producing an HTTP 500 status code,
+but `CodeErr` and `Responder` allow you to control this behavior
+(see below).
+A `nil` return produces a `200`,
+or a `204` (“no content”) if no bytes were written to the response object.
+
+Usage:
+
+```go
+func main() {
+  http.Handle("/foo", Err(fooHandler))
+  http.ListenAndServe(":8080", nil)
+}
+
+func fooHandler(w http.ResponseWriter, req *http.Request) error {
+  if x := req.FormValue("x"); x != "secret password" {
+    return CodeErr{C: http.StatusUnauthorized}
+  }
+  fmt.Fprintf(w, "You know the secret password")
+  return nil
+}
+```
+
+## JSON
+
+The `JSON` function turns a `func(context.Context, interface{}) (interface{}, error)`
+into an `http.Handler`,
+automatically JSON-unmarshaling the HTTP request body into the `interface{}` input parameter,
+and automatically JSON-marshaling the function’s result into the HTTP response.
+Any error is handled as with `Err`
+(see above).
+All parts of the `func` signature are optional:
+the `context.Context` parameter,
+the `interface{}` parameter,
+the `interface{}` result,
+and the `error` result.
+
+Usage:
+
+```go
+func main() {
+  http.Handle("/bar", JSON(barHandler))
+  http.ListenAndServe(":8080", nil)
+}
+
+// Parses the request body as a JSON-encoded array of strings,
+// then sorts and returns that array.
+func barHandler(inp []string) []string {
+  sort.Strings(inp)
+  return inp
+}
+```
+
+## CodeErr and Responder
+
+`CodeErr` is an `error` type suitable for returning from `Err`- and `JSON`-wrapped handlers that can control the HTTP status code that gets returned.
+It contains an HTTP status code field and a nested `error`.
+
+`Responder` is an interface
+(implemented by `CodeErr`)
+that allows an error type to control how `Err`- and `JSON`-wrapped handlers respond to the pending request.
+
+## ResponseWrapper
+
+`ResponseWrapper` is an `http.ResponseWriter` that wraps a nested `http.ResponseWriter` and also records the status code and number of bytes sent in the response.
+
+## Trace
+
+The `Trace` function wraps an `http.Handler` and decorates the `context.Context` in its `*http.Request` with any “trace ID” string found in the request header.
+
+## Log
+
+The `Log` function wraps an `http.Handler` with a function that writes a simple log line on the way into and out of the handler.
+The log line includes any “trace ID” found in the request’s `context.Context`.

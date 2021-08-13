@@ -222,6 +222,7 @@ func TestJSONPtrs(t *testing.T) {
 	s := httptest.NewServer(JSON(func(in *jsonInput) *jsonOutput {
 		return &jsonOutput{C: in.B, D: in.A}
 	}))
+	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{"a":1,"b":"xyzzy"}`))
 	if err != nil {

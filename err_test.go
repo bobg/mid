@@ -24,9 +24,15 @@ func TestErr(t *testing.T) {
 
 		case "/d":
 			w.Write([]byte("foo"))
+
+		case "/e":
+			http.Error(w, "xyzzy", http.StatusNotAcceptable)
 		}
+
+		// "/a"
 		return nil
 	}))
+	defer s.Close()
 
 	cases := []struct {
 		path     string
@@ -49,6 +55,10 @@ func TestErr(t *testing.T) {
 			path:     "/d",
 			wantCode: http.StatusOK,
 			wantBody: "foo",
+		},
+		{
+			path:     "/e",
+			wantCode: http.StatusNotAcceptable,
 		},
 	}
 
