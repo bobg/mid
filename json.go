@@ -63,73 +63,18 @@ type (
 //
 // Some of the code in this function is (liberally) adapted from github.com/chain/chain.
 func JSON(f interface{}) http.Handler {
-	e := func() string { return fmt.Sprintf("got %T, want func([ctx], [...]) ([...], [error])", f) }
-
 	fv := reflect.ValueOf(f)
 	if fv.Kind() != reflect.Func {
-		panic(e())
+		jsonPanic(fv.Type())
 	}
 
 	ft := fv.Type()
 	if ft.IsVariadic() {
-		panic(e())
+		jsonPanic(ft)
 	}
 
-	var (
-		hasCtx   bool
-		argType  reflect.Type
-		argIsPtr bool
-	)
-
-	switch ft.NumIn() {
-	case 0:
-		// do nothing
-	case 1:
-		if ft.In(0).Implements(contextType) {
-			hasCtx = true
-		} else {
-			argType = ft.In(0)
-		}
-	case 2:
-		if ft.In(0).Implements(contextType) {
-			hasCtx = true
-		} else {
-			panic(e())
-		}
-		argType = ft.In(1)
-	default:
-		panic(e())
-	}
-
-	if argType != nil && argType.Kind() == reflect.Ptr {
-		argIsPtr = true
-		argType = argType.Elem()
-	}
-
-	var (
-		hasErr bool
-		hasRes bool
-	)
-
-	switch ft.NumOut() {
-	case 0:
-		// do nothing
-	case 1:
-		if ft.Out(0).Implements(errorType) {
-			hasErr = true
-		} else {
-			hasRes = true
-		}
-	case 2:
-		hasRes = true
-		if ft.Out(1).Implements(errorType) {
-			hasErr = true
-		} else {
-			panic(e())
-		}
-	default:
-		panic(e())
-	}
+	hasCtx, argIsPtr, argType := jsonArgInfo(ft)
+	hasErr, hasRes := jsonResultInfo(ft)
 
 	return Err(func(w http.ResponseWriter, req *http.Request) error {
 		ctx := req.Context()
@@ -189,6 +134,61 @@ func JSON(f interface{}) http.Handler {
 		err := json.NewEncoder(w).Encode(res)
 		return errors.Wrap(err, "marshaling JSON response")
 	})
+}
+
+func jsonArgInfo(ft reflect.Type) (hasCtx, argIsPtr bool, argType reflect.Type) {
+	switch ft.NumIn() {
+	case 0:
+		// do nothing
+	case 1:
+		if ft.In(0).Implements(contextType) {
+			hasCtx = true
+		} else {
+			argType = ft.In(0)
+		}
+	case 2:
+		if !ft.In(0).Implements(contextType) {
+			jsonPanic(ft)
+		}
+		hasCtx = true
+		argType = ft.In(1)
+	default:
+		jsonPanic(ft)
+	}
+
+	if argType != nil && argType.Kind() == reflect.Ptr {
+		argIsPtr = true
+		argType = argType.Elem()
+	}
+
+	return hasCtx, argIsPtr, argType
+}
+
+func jsonResultInfo(ft reflect.Type) (hasErr, hasRes bool) {
+	switch ft.NumOut() {
+	case 0:
+		// do nothing
+	case 1:
+		if ft.Out(0).Implements(errorType) {
+			hasErr = true
+		} else {
+			hasRes = true
+		}
+	case 2:
+		if !ft.Out(1).Implements(errorType) {
+			jsonPanic(ft)
+		}
+		hasRes = true
+		hasErr = true
+	default:
+		jsonPanic(ft)
+	}
+
+	return hasErr, hasRes
+}
+
+func jsonPanic(typ reflect.Type) {
+	panic(fmt.Sprintf("got %s, want func([ctx], [...]) ([...], [error])", typ))
 }
 
 // Request returns the pending *http.Request object
