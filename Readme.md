@@ -3,6 +3,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/bobg/mid.svg)](https://pkg.go.dev/github.com/bobg/mid)
 [![Go Report Card](https://goreportcard.com/badge/github.com/bobg/mid)](https://goreportcard.com/report/github.com/bobg/mid)
 ![Tests](https://github.com/bobg/mid/actions/workflows/go.yml/badge.svg)
+[![Coverage Status](https://coveralls.io/repos/github/bobg/mid/badge.svg?branch=master)](https://coveralls.io/github/bobg/mid?branch=master)
 
 This is mid,
 a collection of useful middleware for HTTP services.
