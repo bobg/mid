@@ -31,10 +31,11 @@ func Errf(w http.ResponseWriter, code int, format string, args ...interface{}) {
 // Err wraps an error-returning function as an http.Handler.
 // If the returned error is a Responder (such as a CodeErr),
 // its Respond method is used to respond to the request.
-// Otherwise, an error return will set the response code to http.StatusInternalServerError
-// (if a response code has not already been set) with the message set to the error's string.
-// If there is no error, the status code (if not already set)
-// defaults to http.StatusOK, or http.StatusNoContent if nothing has been written to w.
+// Otherwise,
+// if a status code has not already been set,
+// an error return will set it to http.StatusInternalServerError,
+// and the absence of an error will set it to http.StatusOK,
+// or http.StatusNoContent if nothing has been written to the ResponseWriter.
 func Err(f func(http.ResponseWriter, *http.Request) error) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ww := ResponseWrapper{W: w}
