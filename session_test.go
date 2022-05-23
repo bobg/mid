@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 type testSession struct {
@@ -15,9 +16,9 @@ type testSession struct {
 	csrfKey [sha256.Size]byte
 }
 
-func (s testSession) CSRFKey() [sha256.Size]byte {
-	return s.csrfKey
-}
+func (s testSession) CSRFKey() [sha256.Size]byte { return s.csrfKey }
+func (testSession) Active() bool                 { return true }
+func (testSession) Exp() time.Time               { return time.Now().Add(24 * time.Hour) }
 
 func TestCSRF(t *testing.T) {
 	var s1, s2 testSession
@@ -62,15 +63,17 @@ func TestSessionHandler(t *testing.T) {
 	defer server.Close()
 
 	cases := []struct {
-		val  string
-		want int
+		val              string
+		want, wantStatus int
 	}{{
-		val:  "foo",
-		want: 1,
+		val:        "foo",
+		wantStatus: http.StatusNoContent,
+		want:       1,
 	}, {
-		val: "bar",
+		val:        "bar",
+		wantStatus: http.StatusForbidden,
 	}, {
-		// empty
+		wantStatus: http.StatusForbidden,
 	}}
 
 	var client http.Client
@@ -90,7 +93,11 @@ func TestSessionHandler(t *testing.T) {
 			}
 			defer resp.Body.Close()
 
-			if got != tc.want {
+			if resp.StatusCode != tc.wantStatus {
+				t.Errorf("got status %d, want %d", resp.StatusCode, tc.wantStatus)
+			}
+
+			if resp.StatusCode == http.StatusNoContent && got != tc.want {
 				t.Errorf("got %d, want %d", got, tc.want)
 			}
 		})
@@ -104,4 +111,8 @@ func (s testSessionStore) Get(_ context.Context, key string) (Session, error) {
 		return testSession{id: 1}, nil
 	}
 	return nil, ErrNoSession
+}
+
+func (testSessionStore) Cancel(context.Context, string) error {
+	return fmt.Errorf("unimplemented")
 }

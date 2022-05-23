@@ -6,7 +6,9 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -15,6 +17,12 @@ import (
 type Session interface {
 	// CSRFKey is a persistent random bytestring that can be used for CSRF protection.
 	CSRFKey() [sha256.Size]byte
+
+	// Active is true when the session is created and false after it is canceled (via SessionStore.Cancel).
+	Active() bool
+
+	// Exp is the expiration time of the session.
+	Exp() time.Time
 }
 
 const csrfNonceLen = 16
@@ -44,6 +52,7 @@ func CSRFToken(s Session) (string, error) {
 var ErrCSRF = errors.New("CSRF check failed")
 
 // CSRFCheck checks a CSRF token against a session for validity.
+// TODO: check s is active and unexpired?
 func CSRFCheck(s Session, inp string) error {
 	got, err := base64.RawURLEncoding.DecodeString(inp)
 	if err != nil {
@@ -80,6 +89,11 @@ type SessionStore interface {
 	// Get gets the session with the given key.
 	// If no such session is found, it returns ErrNoSession.
 	Get(context.Context, string) (Session, error)
+
+	// Cancel cancels the session with the given unique key.
+	// If the session does not exist, or is already canceled or expired,
+	// this function silently succeeds.
+	Cancel(context.Context, string) error
 }
 
 // GetSession checks for a session cookie in a given HTTP request
@@ -101,19 +115,22 @@ func IsNoSession(err error) bool {
 // It checks the incoming request for a session in the given store.
 // If one is found, the request's context is decorated with the session.
 // It can be retrieved by the next handler with ContextSession.
+// If an active, unexpired session is not found, a 403 Forbidden error is returned.
 func SessionHandler(store SessionStore, cookieName string, next http.Handler) http.Handler {
 	return Err(func(w http.ResponseWriter, req *http.Request) error {
 		ctx := req.Context()
 		s, err := GetSession(ctx, store, cookieName, req)
-		switch {
-		case err == nil:
-			ctx = context.WithValue(ctx, sessKey, s)
-			req = req.WithContext(ctx)
-		case IsNoSession(err):
-			// do nothing
-		default:
+		if IsNoSession(err) {
+			return CodeErr{C: http.StatusForbidden, Err: err}
+		}
+		if err != nil {
 			return errors.Wrap(err, "getting session")
 		}
+		if !s.Active() || s.Exp().Before(time.Now()) {
+			return CodeErr{C: http.StatusForbidden, Err: fmt.Errorf("session inactive or expired")}
+		}
+		ctx = context.WithValue(ctx, sessKey, s)
+		req = req.WithContext(ctx)
 		next.ServeHTTP(w, req)
 		return nil
 	})
