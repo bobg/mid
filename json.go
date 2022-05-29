@@ -130,10 +130,15 @@ func JSON(f interface{}) http.Handler {
 		}
 
 		res := rv[0].Interface()
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		err := json.NewEncoder(w).Encode(res)
+		err := RespondJSON(w, res)
 		return errors.Wrap(err, "marshaling JSON response")
 	})
+}
+
+// RespondJSON responds to an http request with a JSON-encoded object.
+func RespondJSON(w http.ResponseWriter, obj interface{}) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	return json.NewEncoder(w).Encode(obj)
 }
 
 func jsonArgInfo(ft reflect.Type) (hasCtx, argIsPtr bool, argType reflect.Type) {
