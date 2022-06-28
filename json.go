@@ -138,7 +138,9 @@ func JSON(f interface{}) http.Handler {
 // RespondJSON responds to an http request with a JSON-encoded object.
 func RespondJSON(w http.ResponseWriter, obj interface{}) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	return json.NewEncoder(w).Encode(obj)
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	return enc.Encode(obj)
 }
 
 func jsonArgInfo(ft reflect.Type) (hasCtx, argIsPtr bool, argType reflect.Type) {
