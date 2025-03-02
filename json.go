@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/bobg/errors"
 )
 
 var (
@@ -26,7 +26,7 @@ type (
 //
 // The signature of the function is:
 //
-//   func(context.Context, inType) (outType, error)
+//	func(context.Context, inType) (outType, error)
 //
 // where inType is any type that can be decoded from JSON
 // and outType is any type that can be encoded to JSON.

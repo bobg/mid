@@ -106,13 +106,13 @@ func TestSessionHandler(t *testing.T) {
 
 type testSessionStore struct{}
 
-func (s testSessionStore) Get(_ context.Context, key string) (Session, error) {
+func (s testSessionStore) GetSession(_ context.Context, key string) (Session, error) {
 	if key == "foo" {
 		return testSession{id: 1}, nil
 	}
 	return nil, ErrNoSession
 }
 
-func (testSessionStore) Cancel(context.Context, string) error {
+func (testSessionStore) CancelSession(context.Context, string) error {
 	return fmt.Errorf("unimplemented")
 }

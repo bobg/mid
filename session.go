@@ -10,15 +10,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/bobg/errors"
 )
 
-// Session is the type of a session stored in a SessionStore.
+// Session is the type of a session stored in a [SessionStore].
 type Session interface {
 	// CSRFKey is a persistent random bytestring that can be used for CSRF protection.
 	CSRFKey() [sha256.Size]byte
 
-	// Active is true when the session is created and false after it is canceled (via SessionStore.Cancel).
+	// Active is true when the session is created and false after it is canceled (via [SessionStore.CancelSession]).
 	Active() bool
 
 	// Exp is the expiration time of the session.
@@ -88,12 +88,12 @@ var ErrNoSession = errors.New("no session")
 type SessionStore interface {
 	// Get gets the session with the given key.
 	// If no such session is found, it returns ErrNoSession.
-	Get(context.Context, string) (Session, error)
+	GetSession(context.Context, string) (Session, error)
 
 	// Cancel cancels the session with the given unique key.
 	// If the session does not exist, or is already canceled or expired,
 	// this function silently succeeds.
-	Cancel(context.Context, string) error
+	CancelSession(context.Context, string) error
 }
 
 // GetSession checks for a session cookie in a given HTTP request
@@ -103,7 +103,7 @@ func GetSession(ctx context.Context, store SessionStore, cookieName string, req 
 	if err != nil {
 		return nil, errors.Wrap(err, "getting session cookie")
 	}
-	return store.Get(ctx, cookie.Value)
+	return store.GetSession(ctx, cookie.Value)
 }
 
 // IsNoSession tests whether the given error is either ErrNoSession or http.ErrNoCookie.
@@ -129,7 +129,7 @@ func SessionHandler(store SessionStore, cookieName string, next http.Handler) ht
 		if !s.Active() || s.Exp().Before(time.Now()) {
 			return CodeErr{C: http.StatusForbidden, Err: fmt.Errorf("session inactive or expired")}
 		}
-		ctx = context.WithValue(ctx, sessKey, s)
+		ctx = context.WithValue(ctx, sessKeyType{}, s)
 		req = req.WithContext(ctx)
 		next.ServeHTTP(w, req)
 		return nil
@@ -138,11 +138,9 @@ func SessionHandler(store SessionStore, cookieName string, next http.Handler) ht
 
 type sessKeyType struct{}
 
-var sessKey sessKeyType
-
 // ContextSession returns the Session associated with a context (by SessionHandler), if there is one.
 // If there isn't, this returns nil.
 func ContextSession(ctx context.Context) Session {
-	s, _ := ctx.Value(sessKey).(Session)
+	s, _ := ctx.Value(sessKeyType{}).(Session)
 	return s
 }

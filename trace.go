@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/bobg/errors"
 )
 
 type traceIDKeyType struct{}
