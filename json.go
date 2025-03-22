@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/bobg/errors"
 )
 
 var (
@@ -22,7 +22,7 @@ type (
 	respKey struct{}
 )
 
-// JSON produces an http.Handler by JSON encoding and decoding of a given function's input and output.
+// JSON produces an [http.Handler] by JSON encoding and decoding of a given function's input and output.
 //
 // The signature of the function is:
 //
@@ -40,17 +40,17 @@ type (
 // When the function is called:
 //
 //   - If a context argument is present,
-//     it is supplied from the Context() method of the pending *http.Request.
+//     it is supplied from the Context() method of the pending [*http.Request].
 //     That context is further adorned with the pending *http.Request
-//     and the pending http.ResponseWriter,
-//     which can be retrieved with the Request and ResponseWriter functions.
+//     and the pending [http.ResponseWriter],
+//     which can be retrieved with the [Request] and [ResponseWriter] functions.
 //
 //   - If an inType argument is present,
 //     the request is checked to ensure that the method is POST
 //     and the Content-Type is application/json;
 //     then the request body is unmarshaled into the inType argument.
 //     Note that the JSON decoder uses the UseNumber setting;
-//     see https://golang.org/pkg/encoding/json/#Decoder.UseNumber.
+//     see [json.Decoder.UseNumber].
 //
 //   - If an outType result is present,
 //     it is JSON marshaled and written to the pending ResponseWriter
@@ -59,7 +59,7 @@ type (
 //     the default HTTP status is 204 (no content).
 //
 //   - If an error result is present,
-//     it is handled as in Err.
+//     it is handled as in [Err].
 //
 // Some of the code in this function is (liberally) adapted from github.com/chain/chain.
 func JSON(f interface{}) http.Handler {

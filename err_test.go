@@ -2,7 +2,7 @@ package mid
 
 import (
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -74,7 +74,7 @@ func TestErr(t *testing.T) {
 				t.Errorf("got code %d, want %d", resp.StatusCode, c.wantCode)
 			}
 			if c.wantBody != "" {
-				body, err := ioutil.ReadAll(resp.Body)
+				body, err := io.ReadAll(resp.Body)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -83,5 +83,12 @@ func TestErr(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestCode(t *testing.T) {
+	e := CodeErr{C: http.StatusTeapot}
+	if got := e.Code(); got != http.StatusTeapot {
+		t.Errorf("got code %d, want %d", got, http.StatusTeapot)
 	}
 }

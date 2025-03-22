@@ -5,10 +5,10 @@ import (
 	"net/http"
 )
 
-// Log adds logging on entry to and exit from an http.Handler.
+// Log adds logging on entry to and exit from an [http.Handler] using [log.Printf].
 //
 // If the request is decorated with a trace ID
-// (see Trace),
+// (see [Trace]),
 // it is included in the generated log lines.
 func Log(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {

@@ -1,11 +1,9 @@
 // Package mid contains assorted middleware for use in HTTP services.
 package mid
 
-import (
-	"net/http"
-)
+import "net/http"
 
-// ResponseWrapper implements http.ResponseWriter,
+// ResponseWrapper implements [http.ResponseWriter],
 // delegating calls to a wrapped http.ResponseWriter object.
 // It also records the status code and the number of response bytes that have been written.
 type ResponseWrapper struct {

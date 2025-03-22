@@ -10,10 +10,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/bobg/errors"
 )
 
-// Session is the type of a session stored in a SessionStore.
+// Session is the type of a session stored in a [SessionStore].
 type Session interface {
 	// CSRFKey is a persistent random bytestring that can be used for CSRF protection.
 	CSRFKey() [sha256.Size]byte
@@ -48,7 +48,7 @@ func CSRFToken(s Session) (string, error) {
 	return base64.RawURLEncoding.EncodeToString(buf[:]), nil
 }
 
-// ErrCSRF is the error produced when an invalid CSRF token is presented to CSRFCheck.
+// ErrCSRF is the error produced when an invalid CSRF token is presented to [CSRFCheck].
 var ErrCSRF = errors.New("CSRF check failed")
 
 // CSRFCheck checks a CSRF token against a session for validity.
@@ -81,13 +81,13 @@ func csrfSum(s Session, inp []byte) ([]byte, error) {
 	return h.Sum(nil), nil
 }
 
-// ErrNoSession is the error produced by SessionStore.Get when no matching session is found.
+// ErrNoSession is the error produced by [SessionStore.Get] when no matching session is found.
 var ErrNoSession = errors.New("no session")
 
 // SessionStore is persistent storage for session objects.
 type SessionStore interface {
 	// Get gets the session with the given key.
-	// If no such session is found, it returns ErrNoSession.
+	// If no such session is found, it returns [ErrNoSession].
 	Get(context.Context, string) (Session, error)
 
 	// Cancel cancels the session with the given unique key.
@@ -106,15 +106,15 @@ func GetSession(ctx context.Context, store SessionStore, cookieName string, req 
 	return store.Get(ctx, cookie.Value)
 }
 
-// IsNoSession tests whether the given error is either ErrNoSession or http.ErrNoCookie.
+// IsNoSession tests whether the given error is either [ErrNoSession] or [http.ErrNoCookie].
 func IsNoSession(err error) bool {
 	return errors.Is(err, http.ErrNoCookie) || errors.Is(err, ErrNoSession)
 }
 
-// SessionHandler is an http.Handler middleware wrapper.
+// SessionHandler is an [http.Handler] middleware wrapper.
 // It checks the incoming request for a session in the given store.
 // If one is found, the request's context is decorated with the session.
-// It can be retrieved by the next handler with ContextSession.
+// It can be retrieved by the next handler with [ContextSession].
 // If an active, unexpired session is not found, a 403 Forbidden error is returned.
 func SessionHandler(store SessionStore, cookieName string, next http.Handler) http.Handler {
 	return Err(func(w http.ResponseWriter, req *http.Request) error {
@@ -129,7 +129,7 @@ func SessionHandler(store SessionStore, cookieName string, next http.Handler) ht
 		if !s.Active() || s.Exp().Before(time.Now()) {
 			return CodeErr{C: http.StatusForbidden, Err: fmt.Errorf("session inactive or expired")}
 		}
-		ctx = context.WithValue(ctx, sessKey, s)
+		ctx = context.WithValue(ctx, sessKeyType{}, s)
 		req = req.WithContext(ctx)
 		next.ServeHTTP(w, req)
 		return nil
@@ -138,11 +138,9 @@ func SessionHandler(store SessionStore, cookieName string, next http.Handler) ht
 
 type sessKeyType struct{}
 
-var sessKey sessKeyType
-
-// ContextSession returns the Session associated with a context (by SessionHandler), if there is one.
+// ContextSession returns the [Session] associated with a context (by [SessionHandler]), if there is one.
 // If there isn't, this returns nil.
 func ContextSession(ctx context.Context) Session {
-	s, _ := ctx.Value(sessKey).(Session)
+	s, _ := ctx.Value(sessKeyType{}).(Session)
 	return s
 }
