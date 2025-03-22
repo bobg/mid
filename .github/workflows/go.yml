@@ -10,12 +10,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Set up Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.16
+        go-version: 1.24
 
     - name: Unit tests
       run: go test -v -coverprofile=cover.out ./...
@@ -24,3 +24,10 @@ jobs:
       uses: shogo82148/actions-goveralls@v1
       with:
         path-to-profile: cover.out
+
+      - name: Modver
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: bobg/modver@v2.11.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pull_request_url: https://github.com/${{ github.repository }}/pull/${{ github.event.number }}
